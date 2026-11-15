@@ -1,0 +1,43 @@
+name: Construire l'APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Préparer le projet Android
+        run: |
+          flutter create --org com.monplanning --project-name mon_planning --platforms=android build_app
+          cp pubspec.yaml build_app/pubspec.yaml
+          rm -rf build_app/lib
+          cp -r lib build_app/lib
+          sed -i 's/android:label="[^"]*"/android:label="Mon Planning"/' build_app/android/app/src/main/AndroidManifest.xml
+
+      - name: Installer les dépendances
+        working-directory: build_app
+        run: flutter pub get
+
+      - name: Construire l'APK
+        working-directory: build_app
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mon-planning-apk
+          path: build_app/build/app/outputs/flutter-apk/app-release.apk
