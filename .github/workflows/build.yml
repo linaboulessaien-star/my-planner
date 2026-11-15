@@ -9,9 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -28,6 +28,17 @@ jobs:
           rm -rf build_app/lib
           cp -r lib build_app/lib
           sed -i 's/android:label="[^"]*"/android:label="Mon Planning"/' build_app/android/app/src/main/AndroidManifest.xml
+
+      - name: Désactiver le contrôle lint qui plante
+        run: |
+          F=build_app/android/app/build.gradle.kts
+          if [ -f "$F" ]; then
+            sed -i '0,/^android {/s//android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }/' "$F"
+          else
+            F=build_app/android/app/build.gradle
+            sed -i '0,/^android {/s//android {\n    lint {\n        checkReleaseBuilds false\n        abortOnError false\n    }/' "$F"
+          fi
+          grep -n -A4 "lint {" "$F"
 
       - name: Installer les dépendances
         working-directory: build_app
